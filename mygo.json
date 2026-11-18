@@ -1,0 +1,12 @@
+{
+  "name": "MyGo Translate",
+  "slug": "mygo-translate",
+  "identifier": "io.github.yxxbc.mygo-translate",
+  "version": "0.1.0",
+  "main": "./cmd/easydict-native",
+  "icon": "cmd/easydict-native/icon.png",
+  "out": "build",
+  "macos": {
+    "signingIdentity": "-"
+  }
+}

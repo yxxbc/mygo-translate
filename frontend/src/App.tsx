@@ -3,7 +3,6 @@ import { ServiceResult, AppConfig } from "@/types";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SettingsModal } from "@/components/SettingsModal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Toast } from "@/components/ui/toast";
 import { Tabs } from "@base-ui/react";
@@ -40,7 +39,7 @@ export function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const toastManager = Toast.useToastManager();
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const configRef = useRef<AppConfig | null>(null);
   const querySession = useRef<ReturnType<typeof startQuery> | null>(null);
   const queryVersion = useRef(0);
@@ -127,7 +126,7 @@ export function App() {
         if (settingsOpenRef.current) return;
         // The search input owns Escape while it is focused: first clear the
         // query, then hide. Do not let the window-level handler hide it too.
-        if (e.target instanceof HTMLInputElement && e.target.id === "query-input") return;
+        if (e.target instanceof HTMLTextAreaElement && e.target.id === "query-input") return;
         e.preventDefault();
         callGo("AppBridge.HideWindow");
       }
@@ -407,14 +406,15 @@ export function App() {
       if (query.trim()) executeSearch(query.trim(), curTo, curFrom);
     } else {
       setFromLang(curTo);
-      setToLang("en");
-      if (query.trim()) executeSearch(query.trim(), curTo, "en");
+      const target = curTo === "en" ? "zh-CN" : "en";
+      setToLang(target);
+      if (query.trim()) executeSearch(query.trim(), curTo, target);
     }
   };
 
   const filteredResults =
     activeTab === "all"
-      ? results
+      ? [...results].sort((a, b) => Number(b.status === "success") - Number(a.status === "success"))
       : results.filter((r) => r.service_id === activeTab);
   const showStopButton = hasPendingResults(results);
   const canTranslate = query.trim().length > 0;
@@ -437,19 +437,20 @@ export function App() {
             </Button>
           </div>
         )}
-        {/* Search Bar with Base UI Input */}
-        <div className="relative flex items-center">
-          <Search className="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none" />
-          <Input
+        <div className="relative">
+          <textarea
             ref={inputRef}
             id="query-input"
-            type="text"
+            aria-label="原文"
+            rows={isSelectionWindow ? 1 : 3}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.nativeEvent.isComposing) return;
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
                 if (query.trim()) executeSearch(query);
               }
               if (e.key === "Escape") {
@@ -463,10 +464,10 @@ export function App() {
                 }
               }
             }}
-            placeholder={`输入单词、短语或句子... (快捷键 ${shortcutLabel(config?.shortcut_input || "Alt+A")} 聚焦)`}
-            className="pl-9 pr-16 h-10 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-900/90 border-zinc-200 dark:border-zinc-800 focus-visible:ring-2 focus-visible:ring-blue-500 shadow-xs"
+            placeholder="输入单词或粘贴一段文字"
+            className="block w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 p-3 pr-28 text-sm leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950"
           />
-          <div className="absolute right-2 flex items-center gap-1">
+          <div className="absolute right-2 top-2 flex items-center gap-1">
             {query && (
               <Button
                 variant="ghost"
@@ -497,6 +498,7 @@ export function App() {
             ) : (
               <Button
                 id="search-btn"
+                title="Enter 翻译，Shift + Enter 换行"
                 size="sm"
                 disabled={!canTranslate}
                 className="h-7 px-2.5 text-xs rounded-md shadow-none font-medium"
@@ -515,13 +517,13 @@ export function App() {
               aria-label="源语言"
               items={[
                 { value: "auto", label: "自动识别" },
-                { value: "en", label: "英语 (en)" },
-                { value: "zh-CN", label: "简体中文 (zh-CN)" },
-                { value: "zh-TW", label: "繁体中文 (zh-TW)" },
-                { value: "ja", label: "日语 (ja)" },
-                { value: "ko", label: "韩语 (ko)" },
-                { value: "fr", label: "法语 (fr)" },
-                { value: "de", label: "德语 (de)" },
+                { value: "en", label: "英语" },
+                { value: "zh-CN", label: "简体中文" },
+                { value: "zh-TW", label: "繁体中文" },
+                { value: "ja", label: "日语" },
+                { value: "ko", label: "韩语" },
+                { value: "fr", label: "法语" },
+                { value: "de", label: "德语" },
               ]}
               value={fromLang}
               onValueChange={(value) => {
@@ -543,13 +545,13 @@ export function App() {
             <Select
               aria-label="目标语言"
               items={[
-                { value: "zh-CN", label: "简体中文 (zh-CN)" },
-                { value: "zh-TW", label: "繁体中文 (zh-TW)" },
-                { value: "en", label: "英语 (en)" },
-                { value: "ja", label: "日语 (ja)" },
-                { value: "ko", label: "韩语 (ko)" },
-                { value: "fr", label: "法语 (fr)" },
-                { value: "de", label: "德语 (de)" },
+                { value: "zh-CN", label: "简体中文" },
+                { value: "zh-TW", label: "繁体中文" },
+                { value: "en", label: "英语" },
+                { value: "ja", label: "日语" },
+                { value: "ko", label: "韩语" },
+                { value: "fr", label: "法语" },
+                { value: "de", label: "德语" },
               ]}
               value={toLang}
               onValueChange={(value) => {
@@ -624,7 +626,7 @@ export function App() {
         onValueChange={(val) => setActiveTab(val as string)}
         className="flex flex-col flex-1 overflow-hidden"
       >
-        <Tabs.List className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/60 text-xs">
+        <Tabs.List aria-label="翻译来源" className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/60 dark:bg-zinc-900/60 text-xs">
           <div className="flex items-center gap-1 overflow-x-auto">
             {[
               { id: "all", label: "全部" },
@@ -633,7 +635,8 @@ export function App() {
               { id: "google", label: "Google" },
               { id: "ai", label: "AI 释义" },
               { id: "deepl", label: "DeepL" },
-            ].map((tab) => (
+              { id: "libretranslate", label: "LibreTranslate" },
+            ].filter((tab) => tab.id === "all" || results.some((result) => result.service_id === tab.id)).map((tab) => (
               <Tabs.Tab
                 key={tab.id}
                 value={tab.id}
@@ -644,19 +647,10 @@ export function App() {
             ))}
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsSettingsOpen(true)}
-            className="h-6 px-2 text-[11px] gap-1 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400"
-          >
-            <Settings className="w-3 h-3" />
-            <span className="hidden sm:inline">偏好设置</span>
-          </Button>
         </Tabs.List>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-3 space-y-3">
+        <main className="flex-1 overflow-y-auto p-3">
           {filteredResults.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 text-zinc-400 space-y-3">
               <Search className="w-10 h-10 opacity-30" />
@@ -699,7 +693,8 @@ export function App() {
               </div>
             </div>
           ) : (
-            filteredResults.map((res) => (
+            <div className={`mx-auto grid items-start gap-3 ${activeTab === "all" && filteredResults.length > 1 ? "max-w-6xl min-[920px]:grid-cols-2" : "max-w-3xl"}`}>
+              {filteredResults.map((res) => (
               <ServiceCard
                 key={res.service_id}
                 result={res}
@@ -707,7 +702,8 @@ export function App() {
                 onCopy={handleCopy}
                 onSpeak={handleSpeak}
               />
-            ))
+              ))}
+            </div>
           )}
         </main>
       </Tabs.Root>

@@ -48,6 +48,51 @@ func TestYoudaoSentenceQuery(t *testing.T) {
 	}
 }
 
+func TestYoudaoChineseToEnglish(t *testing.T) {
+	yd := NewYoudaoProvider()
+	res, err := yd.Translate(QueryRequest{
+		Text:     "你好",
+		FromLang: LangAuto,
+		ToLang:   LangEn,
+	})
+	if err != nil {
+		t.Fatalf("Youdao Chinese query failed: %v", err)
+	}
+	if res.Status != "success" || !strings.Contains(strings.ToLower(res.Translation), "hello") {
+		t.Fatalf("expected an English translation, got %+v", res)
+	}
+}
+
+func TestYoudaoChineseSignUsesCharacterCount(t *testing.T) {
+	yd := NewYoudaoProvider()
+	res, err := yd.Translate(QueryRequest{
+		Text:     "测试",
+		FromLang: LangAuto,
+		ToLang:   LangEn,
+	})
+	if err != nil {
+		t.Fatalf("Youdao query failed: %v", err)
+	}
+	if res.Status != "success" || !strings.Contains(strings.ToLower(res.Translation), "test") {
+		t.Fatalf("expected test/testing, got %+v", res)
+	}
+}
+
+func TestBingChineseToEnglish(t *testing.T) {
+	bing := NewBingProvider()
+	res, err := bing.Translate(QueryRequest{
+		Text:     "今天天气很好",
+		FromLang: LangAuto,
+		ToLang:   LangEn,
+	})
+	if err != nil {
+		t.Fatalf("Bing query failed: %v", err)
+	}
+	if res.Status != "success" || res.Translation == "" {
+		t.Fatalf("Bing returned %+v", res)
+	}
+}
+
 func TestBingWordQuery(t *testing.T) {
 	bing := NewBingProvider()
 	res, err := bing.Translate(QueryRequest{

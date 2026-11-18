@@ -52,7 +52,7 @@ func (b *BingProvider) ensureCredentials() error {
 		return nil
 	}
 
-	req, err := http.NewRequest("GET", "https://cn.bing.com/translator", nil)
+	req, err := http.NewRequest("GET", "https://www.bing.com/translator?mkt=zh-CN", nil)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,9 @@ func (b *BingProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 	}
 
 	// Translate first so dictionary lookup can use the detected language.
-	transURL := fmt.Sprintf("https://cn.bing.com/ttranslatev3?isVertical=1&&IG=%s&IID=translator.5028", ig)
+	// www.bing.com answers the POST directly; cn.bing.com redirects to it
+	// with a 301, which turns the POST into a GET without the form.
+	transURL := fmt.Sprintf("https://www.bing.com/ttranslatev3?isVertical=1&&IG=%s&IID=translator.5028&mkt=zh-CN", ig)
 	form := url.Values{}
 	form.Set("text", text)
 	form.Set("fromLang", fromLang)
@@ -219,7 +221,7 @@ func (b *BingProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 	var dictResult *ServiceResult
 	isWord := isDictionaryQuery(text)
 	if isWord && fromLang != "auto-detect" {
-		lookupURL := fmt.Sprintf("https://cn.bing.com/tlookupv3?isVertical=1&&IG=%s&IID=translator.5028", ig)
+		lookupURL := fmt.Sprintf("https://www.bing.com/tlookupv3?isVertical=1&&IG=%s&IID=translator.5028&mkt=zh-CN", ig)
 		form := url.Values{}
 		form.Set("text", text)
 		form.Set("from", fromLang)

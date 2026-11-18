@@ -35,6 +35,7 @@ export interface AppConfig {
   ai_base_url: string;
   ai_api_key: string;
   ai_model: string;
+  libretranslate_url: string;
   deepl_enabled: boolean;
   deepl_auth_key: string;
   deepl_is_free: boolean;

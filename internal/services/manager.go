@@ -23,6 +23,7 @@ func NewManager() *Manager {
 	m.Register(NewGoogleProvider())
 	m.Register(NewAIProvider())
 	m.Register(NewDeepLProvider())
+	m.Register(NewLibreTranslateProvider())
 
 	return m
 }

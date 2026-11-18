@@ -18,6 +18,9 @@ type Config struct {
 	AIAPIKey  string `json:"ai_api_key"`
 	AIModel   string `json:"ai_model"`
 
+	// Self-hosted translation endpoint (enabled through EnabledServices).
+	LibreTranslateURL string `json:"libretranslate_url"`
+
 	// DeepL Configuration
 	DeepLEnabled bool   `json:"deepl_enabled"`
 	DeepLAuthKey string `json:"deepl_auth_key"`
@@ -47,12 +50,13 @@ var (
 
 func DefaultConfig() *Config {
 	return &Config{
-		EnabledServices:        []string{"youdao", "bing", "google", "ai"},
+		EnabledServices:        []string{"youdao", "bing", "google"},
 		DefaultTargetLang:      "zh-CN",
-		AIEnabled:              true,
+		AIEnabled:              false,
 		AIBaseURL:              "https://api.deepseek.com/v1",
 		AIAPIKey:               "",
 		AIModel:                "deepseek-chat",
+		LibreTranslateURL:      "http://localhost:5000",
 		DeepLEnabled:           false,
 		DeepLAuthKey:           "",
 		DeepLIsFree:            true,

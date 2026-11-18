@@ -295,12 +295,13 @@ const SettingsContent: React.FC<Omit<SettingsModalProps, "open"> & {
 
         <div className="min-w-0 flex-1 overflow-y-auto p-5">
           {activeSection === "services" && (
-            <Section title="翻译服务" description="选择每次查询要并发展示的来源。词典结果会优先排列。">
+            <Section title="翻译服务" description="查询会同时发送给所选来源。仅使用本机服务时，可只勾选 LibreTranslate。">
               <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
                 {[
                   { id: "youdao", label: "有道词典", detail: "音标 · 词性 · 双语例句" },
                   { id: "bing", label: "Bing 词典 / 翻译", detail: "双解词典与整句翻译" },
-                  { id: "google", label: "Google 翻译", detail: "多语言自动识别" },
+                  { id: "google", label: "Google 翻译", detail: "多语言自动识别，无需密钥" },
+                  { id: "libretranslate", label: "LibreTranslate", detail: "自托管，服务启动后可本机翻译" },
                   { id: "ai", label: "AI 智能词典", detail: "结构化释义与译注" },
                   { id: "deepl", label: "DeepL", detail: "官方翻译 API" },
                 ].map((service) => (
@@ -322,6 +323,11 @@ const SettingsContent: React.FC<Omit<SettingsModalProps, "open"> & {
                   </label>
                 ))}
               </div>
+              <Field label="LibreTranslate 服务地址" htmlFor="libretranslate_url">
+                <Input id="libretranslate_url" placeholder="http://localhost:5000"
+                  defaultValue={defaults.libretranslate_url}
+                  onChange={(e) => { form.current.libretranslate_url = e.target.value.trim(); }} />
+              </Field>
             </Section>
           )}
 

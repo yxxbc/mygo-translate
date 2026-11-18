@@ -8,9 +8,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type YoudaoProvider struct {
@@ -40,12 +42,18 @@ func md5Str(s string) string {
 }
 
 func (y *YoudaoProvider) Translate(req QueryRequest) (*ServiceResult, error) {
-	// This parser handles the English-Chinese dictionary, not arbitrary language pairs.
-	if (req.FromLang != "" && req.FromLang != LangAuto && req.FromLang != LangEn) ||
-		(req.ToLang != "" && req.ToLang != LangAuto && req.ToLang != LangZh) {
+	// This parser handles Chinese and English only, in both directions.
+	supported := func(l Language) bool {
+		switch l {
+		case "", LangAuto, LangEn, LangZh, LangZhTw:
+			return true
+		}
+		return false
+	}
+	if !supported(req.FromLang) || !supported(req.ToLang) {
 		return &ServiceResult{
 			ServiceID: y.ID(), ServiceName: y.Name(), Status: "error",
-			Error: "有道词典当前仅支持英译中，请使用其他翻译服务查询此语言组合",
+			Error: "有道词典仅支持中英互译，请使用其他翻译服务查询此语言组合",
 		}, nil
 	}
 	text := strings.TrimSpace(req.Text)
@@ -59,7 +67,10 @@ func (y *YoudaoProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 	}
 
 	ww := text + "webdict"
-	timeVal := len(ww) % 10
+	// The sign covers the character count, not the byte length: counting
+	// bytes made the server answer for an unrelated word ("测试" with t=3
+	// came back as slater).
+	timeVal := utf8.RuneCountInString(ww) % 10
 	salt := md5Str(ww)
 	key := "Mk6hqtUp33DGGtoS63tTJbMUYjRrG1Lu"
 	sign := md5Str(fmt.Sprintf("web%s%d%s%s", text, timeVal, key, salt))
@@ -174,7 +185,41 @@ func (y *YoudaoProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 		}
 	}
 
-	// 2. Try simple
+	// 2. Chinese-English dictionary (a Chinese word looked up for English)
+	if ceRaw, ok := raw["ce"]; ok {
+		var ceData struct {
+			Word struct {
+				Phone string `json:"phone"`
+				Trs   []struct {
+					Text  string `json:"#text"`
+					Voice string `json:"voice"`
+				} `json:"trs"`
+			} `json:"word"`
+		}
+		if err := json.Unmarshal(ceRaw, &ceData); err == nil {
+			if ceData.Word.Phone != "" {
+				res.Phonetics = append(res.Phonetics, Phonetic{
+					Type:     "pinyin",
+					Symbol:   ceData.Word.Phone,
+					AudioURL: "https://dict.youdao.com/dictvoice?audio=" + url.QueryEscape(text) + "&type=2&le=zh",
+				})
+			}
+			var english []string
+			for _, tr := range ceData.Word.Trs {
+				w := strings.TrimSpace(tr.Text)
+				if w == "" || slices.Contains(english, w) {
+					continue
+				}
+				english = append(english, w)
+			}
+			if len(english) > 0 {
+				res.Translation = strings.Join(english, "；")
+				res.IsDictionary = isDictionaryQuery(text)
+			}
+		}
+	}
+
+	// 3. Try simple
 	if !res.IsDictionary {
 		if simpleRaw, ok := raw["simple"]; ok {
 			var simpleData struct {
@@ -204,7 +249,7 @@ func (y *YoudaoProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 		}
 	}
 
-	// 3. Try fanyi (machine translation)
+	// 4. Try fanyi (machine translation)
 	if fanyiRaw, ok := raw["fanyi"]; ok {
 		var fanyiData struct {
 			Tran string `json:"tran"`
@@ -214,7 +259,7 @@ func (y *YoudaoProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 		}
 	}
 
-	// 4. Try bilingual example sentences
+	// 5. Try bilingual example sentences
 	if sentsRaw, ok := raw["blng_sents_part"]; ok {
 		var sentsData struct {
 			SentencePair []struct {
@@ -243,6 +288,29 @@ func (y *YoudaoProvider) Translate(req QueryRequest) (*ServiceResult, error) {
 						Target:     t,
 						SourceDict: strings.TrimSpace(sp.Source),
 					})
+				}
+			}
+		}
+	}
+
+	// 6. Last resort: the web translations the dictionary page shows,
+	// which cover Chinese words that have no ce entry.
+	if res.Translation == "" {
+		if webRaw, ok := raw["web_trans"]; ok {
+			var webData struct {
+				Items []struct {
+					Trans []struct {
+						Value string `json:"value"`
+					} `json:"trans"`
+				} `json:"web-translation"`
+			}
+			if err := json.Unmarshal(webRaw, &webData); err == nil {
+				for _, item := range webData.Items {
+					for _, tr := range item.Trans {
+						if v := strings.TrimSpace(tr.Value); v != "" && res.Translation == "" {
+							res.Translation = v
+						}
+					}
 				}
 			}
 		}

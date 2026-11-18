@@ -208,7 +208,11 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
             {/* Translation Result (plain text or model Markdown) */}
             {result.translation && (!result.definitions || result.definitions.length === 0) && (
-              <MarkdownText text={result.translation} />
+              result.service_id === "ai" ? (
+                <MarkdownText text={result.translation} />
+              ) : (
+                <p className="whitespace-pre-wrap wrap-anywhere text-sm leading-relaxed">{result.translation}</p>
+              )
             )}
 
             {/* Example Sentences */}

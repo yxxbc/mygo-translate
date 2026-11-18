@@ -1,18 +1,18 @@
-# Easydict for Linux
+# MyGo Translate
 
-一个为 Linux 桌面打造的多源词典与翻译工具。参考
+一个支持 macOS 原生桌面与 Linux 的多源词典与翻译工具。Linux 版参考
 [tisfeng/Easydict](https://github.com/tisfeng/Easydict) 的交互方式，使用 Go +
 [mygo](https://github.com/egoist/mygo) 构建原生窗口，界面采用 React 19、Tailwind CSS
 和 Base UI。
 
-[官网与截图](https://dddaniel1.github.io/easy-dict-linux/) · [安装](#安装) · [快捷键](#快捷键)
+[下载 macOS 版](https://github.com/yxxbc/mygo-translate/releases/latest) · [Linux 安装](#安装) · [快捷键](#快捷键)
 
 ![Easydict for Linux](assets/screenshot.png)
 
-## 功能
+## Linux 功能
 
-- 多服务并行查询：有道词典、Bing、Google、AI 和 DeepL 可独立启用。
-- 词典优先展示：音标、词性、释义、双语例句与发音按钮。
+- 多服务并行查询：有道词典、Bing、Google、LibreTranslate、AI 和 DeepL 可独立启用。
+- 词典展示：音标、词性、释义、双语例句与发音按钮。
 - AI 词典与翻译：兼容 DeepSeek、OpenAI、本地 Ollama 等 OpenAI 风格接口。
 - 划词翻译：读取 Linux `PRIMARY` 选区，显示悬浮入口和紧凑翻译浮窗。
 - 截图翻译：使用 `slurp` + `grim` 或 ImageMagick 框选区域，再通过 OCR 翻译。
@@ -21,6 +21,31 @@
 - 设置管理：分组设置、快捷键录制、冲突提示、窗口尺寸持久化。
 - 系统集成：托盘菜单、原生右键菜单、窗口置顶与桌面快捷键。
 - 界面支持浅色、深色和跟随系统主题。
+
+## 翻译来源
+
+- 有道、Bing 和 Google 默认启用，无需申请 API Key。它们依赖第三方网络接口，可用性和限流随地区及服务变化。
+- LibreTranslate 可以在本机自托管。按[官方文档](https://docs.libretranslate.com/guides/installation/)启动并下载所需语言模型，然后在设置中启用 **LibreTranslate**，填入服务根地址，如 `http://localhost:5000`。仅勾选本机来源即可在离线环境翻译。支持的语言组合由已安装模型决定。
+- DeepL 和云端 AI 可在配置凭据后启用，配额和费用依服务商而定。本机 Ollama 可使用无密钥的 OpenAI 兼容接口。
+
+每次查询会把原文分别提交给启用的来源。macOS 用 **⌘↩** 翻译、**↩** 换行。Linux 用 **Enter** 翻译、**Shift + Enter** 换行。
+
+## macOS 构建与签名发布
+
+本机可运行 `go run ./cmd/easydict-native`，也可在 macOS 用以下命令打包：
+
+```sh
+go run github.com/egoist/mygo/cmd/mygo build -platform darwin/universal
+```
+
+打包配置在 [mygo.json](mygo.json)。GitHub Actions 使用仓库自身作为更新源，建议发布到自己的公开仓库。首次发布需执行一次：
+
+1. 运行 `go run github.com/egoist/mygo/cmd/mygo keygen` 生成更新密钥。
+2. 将 `mygo-update.pub` 的内容存为仓库 Actions 变量 `MYGO_UPDATER_PUBLIC_KEY`，将 `mygo-update.key` 的内容存为 Actions Secret `MYGO_UPDATER_PRIVATE_KEY`。在仓库之外备份私钥，后续版本继续使用同一对密钥。
+3. 推送稳定版本标签，例如 `v0.1.0`。[macOS signed release](.github/workflows/release-macos.yml) 会构建支持 Apple Silicon 和 Intel 的 DMG 和签名更新包，并上传至 Release 草稿。
+4. 检查草稿后，在 GitHub 将其发布为最新 Release。用户可在应用菜单选择 **检查更新…**，应用会使用内置公钥验证更新包。
+
+DMG 内的应用使用免费的 macOS ad hoc 代码签名。首次打开从 GitHub 下载的应用时，Gatekeeper 可能要求在系统设置的「隐私与安全性」中手动批准。Apple Developer ID 签名和公证需要 Apple Developer Program。签名更新包使用 MyGo 的独立密钥。
 
 ## 快捷键
 

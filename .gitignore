@@ -2,3 +2,6 @@ frontend/node_modules/
 bin/
 .serena/
 *.log
+/build/
+/node_modules/
+.DS_Store

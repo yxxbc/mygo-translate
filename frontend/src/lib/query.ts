@@ -3,7 +3,7 @@ import type { AppConfig, ServiceResult } from "../types.ts";
 export function translationSettingsChanged(before: AppConfig | null, after: AppConfig): boolean {
   const fields: (keyof AppConfig)[] = [
     "enabled_services", "ai_enabled", "ai_base_url", "ai_api_key", "ai_model",
-    "deepl_enabled", "deepl_auth_key", "deepl_is_free",
+    "deepl_enabled", "deepl_auth_key", "deepl_is_free", "libretranslate_url",
   ];
   return fields.some((key) => JSON.stringify(before?.[key]) !== JSON.stringify(after[key]));
 }
@@ -17,6 +17,7 @@ export function enabledServices(config: AppConfig | null): string[] {
   return [...new Set(config.enabled_services)].filter((id) => {
     if (id === "ai") return config.ai_enabled && (localAI || !!config.ai_api_key.trim());
     if (id === "deepl") return config.deepl_enabled && !!config.deepl_auth_key.trim();
+    if (id === "libretranslate") return Boolean(config.libretranslate_url?.trim());
     return ["youdao", "bing", "google"].includes(id);
   });
 }
